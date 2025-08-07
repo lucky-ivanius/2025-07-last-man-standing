@@ -110,6 +110,18 @@ contract Game is Ownable {
     event PlatformFeePercentageUpdated(uint256 newPlatformFeePercentage);
 
     /**
+     * @dev Emitted when a previous king receives compensation for being dethroned.
+     * @param previousKing The address of the previous king.
+     * @param payoutAmount The amount paid to the previous king.
+     * @param newKing The address of the new king who made the payment.
+     */
+    event PreviousKingPayout(
+        address indexed previousKing,
+        uint256 payoutAmount,
+        address indexed newKing
+    );
+
+    /**
      * @dev Emitted when the previous king payout percentage is updated by the owner.
      * @param newPreviousKingPayoutPercentage The new previous king payout percentage.
      */
@@ -208,6 +220,8 @@ contract Game is Ownable {
             previousKingPayout = (sentAmount * previousKingPayoutPercentage) / 100;
             (bool success, ) = payable(currentKing).call{value: previousKingPayout}("");
             require(success, "Game: Failed to pay previous king.");
+
+            emit PreviousKingPayout(currentKing, previousKingPayout, msg.sender);
         }
 
         // Calculate platform fee
