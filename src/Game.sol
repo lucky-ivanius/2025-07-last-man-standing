@@ -299,7 +299,7 @@ contract Game is Ownable {
      * @dev Allows the contract owner to update the grace period.
      * @param _newGracePeriod The new grace period in seconds.
      */
-    function updateGracePeriod(uint256 _newGracePeriod) external onlyOwner {
+    function updateGracePeriod(uint256 _newGracePeriod) external onlyOwner gameEndedOnly {
         require(_newGracePeriod > 0, "Game: New grace period must be greater than zero.");
         gracePeriod = _newGracePeriod;
         emit GracePeriodUpdated(_newGracePeriod);
@@ -313,7 +313,7 @@ contract Game is Ownable {
     function updateClaimFeeParameters(
         uint256 _newInitialClaimFee,
         uint256 _newFeeIncreasePercentage
-    ) external onlyOwner isValidPercentage(_newFeeIncreasePercentage) {
+    ) external onlyOwner gameEndedOnly isValidPercentage(_newFeeIncreasePercentage) {
         require(_newInitialClaimFee > 0, "Game: New initial claim fee must be greater than zero.");
         initialClaimFee = _newInitialClaimFee;
         feeIncreasePercentage = _newFeeIncreasePercentage;
@@ -327,6 +327,7 @@ contract Game is Ownable {
     function updatePlatformFeePercentage(uint256 _newPlatformFeePercentage)
         external
         onlyOwner
+        gameEndedOnly
         isValidPercentage(_newPlatformFeePercentage)
     {
         platformFeePercentage = _newPlatformFeePercentage;

@@ -203,4 +203,90 @@ contract GameTest is Test {
         game.updatePreviousKingPayoutPercentage(101);
     }
 
+    // Tests for gameEndedOnly modifier on parameter updates
+    function testUpdateGracePeriod_RevertWhenGameActive() public {
+        // Player1 becomes king - game is now active
+        vm.prank(player1);
+        game.claimThrone{value: INITIAL_CLAIM_FEE}();
+        assertTrue(!game.gameEnded());
+
+        // Should fail when game is active
+        vm.prank(deployer);
+        vm.expectRevert("Game: Game has not ended yet.");
+        game.updateGracePeriod(2 hours);
+    }
+
+    function testUpdateGracePeriod_SuccessWhenGameEnded() public {
+        // Player1 becomes king
+        vm.prank(player1);
+        game.claimThrone{value: INITIAL_CLAIM_FEE}();
+        
+        // End the game
+        vm.warp(block.timestamp + GRACE_PERIOD + 1);
+        game.declareWinner();
+        assertTrue(game.gameEnded());
+
+        // Should succeed when game has ended
+        vm.prank(deployer);
+        game.updateGracePeriod(2 hours);
+        assertEq(game.gracePeriod(), 2 hours);
+    }
+
+    function testUpdatePlatformFeePercentage_RevertWhenGameActive() public {
+        // Player1 becomes king - game is now active
+        vm.prank(player1);
+        game.claimThrone{value: INITIAL_CLAIM_FEE}();
+        assertTrue(!game.gameEnded());
+
+        // Should fail when game is active
+        vm.prank(deployer);
+        vm.expectRevert("Game: Game has not ended yet.");
+        game.updatePlatformFeePercentage(25);
+    }
+
+    function testUpdatePlatformFeePercentage_SuccessWhenGameEnded() public {
+        // Player1 becomes king
+        vm.prank(player1);
+        game.claimThrone{value: INITIAL_CLAIM_FEE}();
+        
+        // End the game
+        vm.warp(block.timestamp + GRACE_PERIOD + 1);
+        game.declareWinner();
+        assertTrue(game.gameEnded());
+
+        // Should succeed when game has ended
+        vm.prank(deployer);
+        game.updatePlatformFeePercentage(25);
+        assertEq(game.platformFeePercentage(), 25);
+    }
+
+    function testUpdateClaimFeeParameters_RevertWhenGameActive() public {
+        // Player1 becomes king - game is now active
+        vm.prank(player1);
+        game.claimThrone{value: INITIAL_CLAIM_FEE}();
+        assertTrue(!game.gameEnded());
+
+        // Should fail when game is active
+        vm.prank(deployer);
+        vm.expectRevert("Game: Game has not ended yet.");
+        game.updateClaimFeeParameters(0.2 ether, 15);
+    }
+
+    function testUpdateClaimFeeParameters_SuccessWhenGameEnded() public {
+        // Player1 becomes king
+        vm.prank(player1);
+        game.claimThrone{value: INITIAL_CLAIM_FEE}();
+        
+        // End the game
+        vm.warp(block.timestamp + GRACE_PERIOD + 1);
+        game.declareWinner();
+        assertTrue(game.gameEnded());
+
+        // Should succeed when game has ended
+        vm.prank(deployer);
+        game.updateClaimFeeParameters(0.2 ether, 15);
+        assertEq(game.initialClaimFee(), 0.2 ether);
+        assertEq(game.feeIncreasePercentage(), 15);
+    }
+
 }
