@@ -284,10 +284,10 @@ contract Game is Ownable {
         uint256 amount = pendingWinnings[msg.sender];
         require(amount > 0, "Game: No winnings to withdraw.");
 
+        pendingWinnings[msg.sender] = 0;
+
         (bool success, ) = payable(msg.sender).call{value: amount}("");
         require(success, "Game: Failed to withdraw winnings.");
-
-        pendingWinnings[msg.sender] = 0;
 
         emit WinningsWithdrawn(msg.sender, amount);
     }
