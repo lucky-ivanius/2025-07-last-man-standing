@@ -12,6 +12,7 @@ contract GameScript is Script {
         uint256 gracePeriod = 3 days;
         uint256 feeIncreasePercentage = 15;
         uint256 platformFeePercentage = 3;
+        uint256 previousKingPayoutPercentage = 10;
 
         vm.startBroadcast();
 
@@ -19,7 +20,8 @@ contract GameScript is Script {
             initialClaimFee,
             gracePeriod,
             feeIncreasePercentage,
-            platformFeePercentage
+            platformFeePercentage,
+            previousKingPayoutPercentage
         );
 
         vm.stopBroadcast();

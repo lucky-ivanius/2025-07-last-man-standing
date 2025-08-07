@@ -19,6 +19,7 @@ contract Game is Ownable {
     uint256 public initialClaimFee; // The starting fee for a new game round
     uint256 public feeIncreasePercentage; // Percentage by which the claimFee increases after each successful claim (e.g., 10 for 10%)
     uint256 public platformFeePercentage; // Percentage of the claimFee that goes to the contract owner (deployer)
+    uint256 public previousKingPayoutPercentage; // Percentage of the claimFee that goes to the previous king
     uint256 public initialGracePeriod; // The grace period set at the start of a new game round
 
     // Payouts and Balances
@@ -152,22 +153,26 @@ contract Game is Ownable {
      * @param _gracePeriod The initial grace period in seconds (e.g., 86400 for 24 hours).
      * @param _feeIncreasePercentage The percentage increase for the claim fee (0-100).
      * @param _platformFeePercentage The percentage of claim fee for the owner (0-100).
+     * @param _previousKingPayoutPercentage The percentage of claim fee for the previous king (0-50).
      */
     constructor(
         uint256 _initialClaimFee,
         uint256 _gracePeriod,
         uint256 _feeIncreasePercentage,
-        uint256 _platformFeePercentage
+        uint256 _platformFeePercentage,
+        uint256 _previousKingPayoutPercentage
     ) Ownable(msg.sender) { // Set deployer as owner
         require(_initialClaimFee > 0, "Game: Initial claim fee must be greater than zero.");
         require(_gracePeriod > 0, "Game: Grace period must be greater than zero.");
         require(_feeIncreasePercentage <= 100, "Game: Fee increase percentage must be 0-100.");
         require(_platformFeePercentage <= 100, "Game: Platform fee percentage must be 0-100.");
+        require(_previousKingPayoutPercentage <= 50, "Game: Previous king payout percentage must be 0-50.");
 
         initialClaimFee = _initialClaimFee;
         initialGracePeriod = _gracePeriod;
         feeIncreasePercentage = _feeIncreasePercentage;
         platformFeePercentage = _platformFeePercentage;
+        previousKingPayoutPercentage = _previousKingPayoutPercentage;
 
         // Initialize game state for the first round
         claimFee = initialClaimFee;
@@ -192,17 +197,24 @@ contract Game is Ownable {
         uint256 currentPlatformFee = 0;
         uint256 amountToPot = 0;
 
+        // Pay previous king if one exists
+        if (currentKing != address(0)) {
+            previousKingPayout = (sentAmount * previousKingPayoutPercentage) / 100;
+            (bool success, ) = payable(currentKing).call{value: previousKingPayout}("");
+            require(success, "Game: Failed to pay previous king.");
+        }
+
         // Calculate platform fee
         currentPlatformFee = (sentAmount * platformFeePercentage) / 100;
 
-        // Defensive check to ensure platformFee doesn't exceed available amount after previousKingPayout
+        // Defensive check to ensure fees don't exceed available amount
         if (currentPlatformFee > (sentAmount - previousKingPayout)) {
             currentPlatformFee = sentAmount - previousKingPayout;
         }
         platformFeesBalance = platformFeesBalance + currentPlatformFee;
 
         // Remaining amount goes to the pot
-        amountToPot = sentAmount - currentPlatformFee;
+        amountToPot = sentAmount - currentPlatformFee - previousKingPayout;
         pot = pot + amountToPot;
 
         // Update game state

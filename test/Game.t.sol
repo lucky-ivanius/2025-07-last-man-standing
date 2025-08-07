@@ -18,7 +18,8 @@ contract GameTest is Test {
     uint256 public constant GRACE_PERIOD = 1 days; // 1 day in seconds
     uint256 public constant FEE_INCREASE_PERCENTAGE = 10; // 10%
     uint256 public constant PLATFORM_FEE_PERCENTAGE = 5; // 5%
-    
+    uint256 public constant PREVIOUS_KING_PAYOUT_PERCENTAGE = 10; // 10%
+
     // Events for testing
     event GameEnded(
         address indexed winner,
@@ -45,14 +46,30 @@ contract GameTest is Test {
             INITIAL_CLAIM_FEE,
             GRACE_PERIOD,
             FEE_INCREASE_PERCENTAGE,
-            PLATFORM_FEE_PERCENTAGE
+            PLATFORM_FEE_PERCENTAGE,
+            PREVIOUS_KING_PAYOUT_PERCENTAGE
         );
         vm.stopPrank();
     }
 
     function testConstructor_RevertInvalidGracePeriod() public {
         vm.expectRevert("Game: Grace period must be greater than zero.");
-        new Game(INITIAL_CLAIM_FEE, 0, FEE_INCREASE_PERCENTAGE, PLATFORM_FEE_PERCENTAGE);
+        new Game(INITIAL_CLAIM_FEE, 0, FEE_INCREASE_PERCENTAGE, PLATFORM_FEE_PERCENTAGE, PREVIOUS_KING_PAYOUT_PERCENTAGE);
+    }
+
+    function testConstructor_RevertInvalidPreviousKingPayoutPercentage() public {
+        vm.expectRevert("Game: Previous king payout percentage must be 0-50.");
+        new Game(INITIAL_CLAIM_FEE, GRACE_PERIOD, FEE_INCREASE_PERCENTAGE, PLATFORM_FEE_PERCENTAGE, 51); // 51% should fail
+    }
+
+    function testConstructor_AcceptValidPreviousKingPayoutPercentage() public {
+        // Test that 50% is accepted (boundary test)
+        Game testGame = new Game(INITIAL_CLAIM_FEE, GRACE_PERIOD, FEE_INCREASE_PERCENTAGE, PLATFORM_FEE_PERCENTAGE, 50);
+        assertEq(testGame.previousKingPayoutPercentage(), 50);
+
+        // Test that 0% is accepted
+        testGame = new Game(INITIAL_CLAIM_FEE, GRACE_PERIOD, FEE_INCREASE_PERCENTAGE, PLATFORM_FEE_PERCENTAGE, 0);
+        assertEq(testGame.previousKingPayoutPercentage(), 0);
     }
 
     function testClaimThrone_MultiplePlayersCanClaimSuccessively() public {
@@ -134,26 +151,44 @@ contract GameTest is Test {
         // Player1 claims throne to build up the pot
         vm.prank(player1);
         game.claimThrone{value: INITIAL_CLAIM_FEE}();
-        
+
         // Player2 claims throne to increase pot further
         uint256 secondClaimFee = game.claimFee();
         vm.prank(player2);
         game.claimThrone{value: secondClaimFee}();
-        
+
         uint256 expectedPrizeAmount = game.pot(); // Save actual pot amount
         assertGt(expectedPrizeAmount, 0); // Verify pot has funds
-        
+
         // Fast forward past grace period
         vm.warp(block.timestamp + GRACE_PERIOD + 1);
-        
+
         // Expect GameEnded event with correct prize amount (not 0)
         vm.expectEmit(true, false, false, true);
         emit GameEnded(player2, expectedPrizeAmount, block.timestamp, 1);
-        
+
         game.declareWinner();
-        
+
         // Verify pot is reset but winner has correct pending winnings
         assertEq(game.pot(), 0);
         assertEq(game.pendingWinnings(player2), expectedPrizeAmount);
     }
+
+    function testClaimThrone_ShouldPayPreviousKing() public {
+        // Player1 becomes king
+        uint256 player1BalanceBefore = player1.balance;
+        vm.prank(player1);
+        game.claimThrone{value: INITIAL_CLAIM_FEE}();
+
+        // Player2 claims throne - should pay player1 a portion
+        uint256 claimFee = game.claimFee();
+        vm.prank(player2);
+        game.claimThrone{value: claimFee}();
+
+        // Player1 should have received some compensation for being dethroned
+        // Currently this fails because no payout mechanism exists
+        uint256 expectedPayout = (claimFee * PREVIOUS_KING_PAYOUT_PERCENTAGE) / 100;
+        assertEq(player1.balance, player1BalanceBefore - INITIAL_CLAIM_FEE + expectedPayout);
+    }
+
 }
