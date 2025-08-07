@@ -18,6 +18,14 @@ contract GameTest is Test {
     uint256 public constant GRACE_PERIOD = 1 days; // 1 day in seconds
     uint256 public constant FEE_INCREASE_PERCENTAGE = 10; // 10%
     uint256 public constant PLATFORM_FEE_PERCENTAGE = 5; // 5%
+    
+    // Events for testing
+    event GameEnded(
+        address indexed winner,
+        uint256 prizeAmount,
+        uint256 timestamp,
+        uint256 round
+    );
 
     function setUp() public {
         deployer = makeAddr("deployer");
@@ -120,5 +128,32 @@ contract GameTest is Test {
         // No one should be king yet
         assertEq(game.currentKing(), address(0));
         assertEq(game.totalClaims(), 0);
+    }
+
+    function testDeclareWinner_EmitsCorrectPrizeAmount() public {
+        // Player1 claims throne to build up the pot
+        vm.prank(player1);
+        game.claimThrone{value: INITIAL_CLAIM_FEE}();
+        
+        // Player2 claims throne to increase pot further
+        uint256 secondClaimFee = game.claimFee();
+        vm.prank(player2);
+        game.claimThrone{value: secondClaimFee}();
+        
+        uint256 expectedPrizeAmount = game.pot(); // Save actual pot amount
+        assertGt(expectedPrizeAmount, 0); // Verify pot has funds
+        
+        // Fast forward past grace period
+        vm.warp(block.timestamp + GRACE_PERIOD + 1);
+        
+        // Expect GameEnded event with correct prize amount (not 0)
+        vm.expectEmit(true, false, false, true);
+        emit GameEnded(player2, expectedPrizeAmount, block.timestamp, 1);
+        
+        game.declareWinner();
+        
+        // Verify pot is reset but winner has correct pending winnings
+        assertEq(game.pot(), 0);
+        assertEq(game.pendingWinnings(player2), expectedPrizeAmount);
     }
 }

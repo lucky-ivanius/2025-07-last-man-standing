@@ -237,10 +237,11 @@ contract Game is Ownable {
 
         gameEnded = true;
 
+        uint256 prizeAmount = pot;
         pendingWinnings[currentKing] = pendingWinnings[currentKing] + pot;
         pot = 0; // Reset pot after assigning to winner's pending winnings
 
-        emit GameEnded(currentKing, pot, block.timestamp, gameRound);
+        emit GameEnded(currentKing, prizeAmount, block.timestamp, gameRound);
     }
 
     /**
