@@ -340,7 +340,6 @@ contract Game is Ownable {
     function updatePreviousKingPayoutPercentage(uint256 _newPreviousKingPayoutPercentage)
         external
         onlyOwner
-        isValidPercentage(_newPreviousKingPayoutPercentage)
     {
         require(_newPreviousKingPayoutPercentage <= 50, "Game: Previous king payout percentage must be 0-50.");
         previousKingPayoutPercentage = _newPreviousKingPayoutPercentage;

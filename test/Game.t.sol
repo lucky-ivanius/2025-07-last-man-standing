@@ -197,9 +197,9 @@ contract GameTest is Test {
         vm.expectRevert("Game: Previous king payout percentage must be 0-50.");
         game.updatePreviousKingPayoutPercentage(51);
 
-        // Test that 101% fails (over 100% validation)
+        // Test that 101% also fails (same validation since we removed the general percentage modifier)
         vm.prank(deployer);
-        vm.expectRevert("Game: Percentage must be 0-100.");
+        vm.expectRevert("Game: Previous king payout percentage must be 0-50.");
         game.updatePreviousKingPayoutPercentage(101);
     }
 
