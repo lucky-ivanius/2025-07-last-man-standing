@@ -191,4 +191,16 @@ contract GameTest is Test {
         assertEq(player1.balance, player1BalanceBefore - INITIAL_CLAIM_FEE + expectedPayout);
     }
 
+    function testUpdatePreviousKingPayoutPercentage_RevertInvalidRange() public {
+        // Test that 51% fails
+        vm.prank(deployer);
+        vm.expectRevert("Game: Previous king payout percentage must be 0-50.");
+        game.updatePreviousKingPayoutPercentage(51);
+
+        // Test that 101% fails (over 100% validation)
+        vm.prank(deployer);
+        vm.expectRevert("Game: Percentage must be 0-100.");
+        game.updatePreviousKingPayoutPercentage(101);
+    }
+
 }

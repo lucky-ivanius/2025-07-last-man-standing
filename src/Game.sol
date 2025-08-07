@@ -109,6 +109,12 @@ contract Game is Ownable {
      */
     event PlatformFeePercentageUpdated(uint256 newPlatformFeePercentage);
 
+    /**
+     * @dev Emitted when the previous king payout percentage is updated by the owner.
+     * @param newPreviousKingPayoutPercentage The new previous king payout percentage.
+     */
+    event PreviousKingPayoutPercentageUpdated(uint256 newPreviousKingPayoutPercentage);
+
     // --- Modifiers ---
 
     /**
@@ -325,6 +331,20 @@ contract Game is Ownable {
     {
         platformFeePercentage = _newPlatformFeePercentage;
         emit PlatformFeePercentageUpdated(_newPlatformFeePercentage);
+    }
+
+    /**
+     * @dev Allows the contract owner to update the previous king payout percentage.
+     * @param _newPreviousKingPayoutPercentage The new previous king payout percentage (0-50).
+     */
+    function updatePreviousKingPayoutPercentage(uint256 _newPreviousKingPayoutPercentage)
+        external
+        onlyOwner
+        isValidPercentage(_newPreviousKingPayoutPercentage)
+    {
+        require(_newPreviousKingPayoutPercentage <= 50, "Game: Previous king payout percentage must be 0-50.");
+        previousKingPayoutPercentage = _newPreviousKingPayoutPercentage;
+        emit PreviousKingPayoutPercentageUpdated(_newPreviousKingPayoutPercentage);
     }
 
     /**
